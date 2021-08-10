@@ -1,11 +1,12 @@
 import argparse
 import time
+import os
 
 import torch.distributed as dist
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-import test  # Import test.py to get mAP after each epoch
+import test_map  # Import test.py to get mAP after each epoch
 from models.model import build_model
 from utils.datasets import *
 from utils.utils import *
@@ -39,7 +40,11 @@ def train(
         resume = False,
         model = None,
         save = False,
+        weights = None,
 ):
+    weights = weights + os.sep
+    latest = weights + 'latest.pt'
+    best = weights + 'best.pt'
 
     class_names = load_classes(names)
     nc = len(class_names)
@@ -140,7 +145,7 @@ def train(
 
         with torch.no_grad():
             print('\n')
-            results = test.test(names = names, batch_size=batch_size, img_size=img_size, model=model,
+            results = test_map.test(names = names, batch_size=batch_size, img_size=img_size, model=model,
                                 conf_thres=0.1, dataloader=test_dataloader)
         # Write epoch results
         with open('results.txt', 'a') as file:
@@ -152,7 +157,6 @@ def train(
             best_loss = test_loss
 
         # Save training results
-        save = False
         if save:
             # Create checkpoint
             chkpt = {'epoch': epoch,
@@ -183,6 +187,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=273, help='number of epochs')
     parser.add_argument('--batch-size', type=int, default=16, help='size of each image batch')
+    parser.add_argument('--weights', type=str, help='to save weights in the weights folder')
     parser.add_argument('--names', type=str, help='file conatin object names')
     parser.add_argument('--img-size', type=int, default=416, help='pixels')
     parser.add_argument('--train_imgs_path', type=str, help='folder contain images')
@@ -208,6 +213,7 @@ if __name__ == '__main__':
         debug = True if opt.debug else False,
         names = opt.names,
         resume = True if opt.resume else False,
+        weights = opt.weights,
     )
 
 
