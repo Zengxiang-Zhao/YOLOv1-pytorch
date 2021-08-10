@@ -60,8 +60,9 @@ def train(
         model = model.to(device)
 
     # Optimizer
-    # optimizer = optim.SGD(model.parameters(), lr=hyp['lr0'], momentum=hyp['momentum'], weight_decay=hyp['weight_decay'])
-    optimizer = optim.Adam(model.parameters(),lr = hyp['lr0'])
+    optimizer = optim.SGD(model.parameters(), lr=hyp['lr0'], momentum=hyp['momentum'], weight_decay=hyp['weight_decay'])
+    # optimizer = optim.Adam(model.parameters(),lr = hyp['lr0'])
+
 
     cutoff = -1  # backbone reaches to cutoff layer
     start_epoch = 0
@@ -72,8 +73,8 @@ def train(
 
     # Scheduler https://github.com/ultralytics/yolov3/issues/238
 
-    # lf = lambda x: 1 - 10 ** (hyp['lrf'] * (1 - x / epochs))  # inverse exp ramp
-    lf = lambda epoch: 0.65 ** epoch
+    lf = lambda x: 1 - 10 ** (hyp['lrf'] * (1 - x / epochs))  # inverse exp ramp
+    # lf = lambda epoch: 0.65 ** epoch
 
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf, last_epoch=start_epoch - 1)
 

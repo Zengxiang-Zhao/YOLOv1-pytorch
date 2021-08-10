@@ -12,6 +12,7 @@ from torch.utils.data import Dataset,DataLoader
 from tqdm import tqdm
 
 from utils.utils import xyxy2xywh
+import torchvision.transforms as transforms
 
 
 # for detect
@@ -235,8 +236,13 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img, dtype=np.float32)  # uint8 to float32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        norm_mean = [0.485, 0.456, 0.406]
+        norm_std = [0.229, 0.224, 0.225]
+        trans = transforms.Normalize(norm_mean, norm_std)
+        img = torch.from_numpy(img)
+        img = trans(img)
 
-        return torch.from_numpy(img), labels_out, img_path, (h, w)
+        return img, labels_out, img_path, (h, w)
 
     @staticmethod
     def collate_fn(batch):
