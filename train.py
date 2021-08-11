@@ -1,6 +1,8 @@
 import argparse
 import time
 import os
+import math
+import re
 
 import torch.distributed as dist
 import torch.optim as optim
@@ -41,6 +43,7 @@ def train(
         model = None,
         save = False,
         weights = None,
+        adam = None,
 ):
     weights = weights + os.sep
     latest = weights + 'latest.pt'
@@ -60,9 +63,26 @@ def train(
         model = model.to(device)
 
     # Optimizer
-    optimizer = optim.SGD(model.parameters(), lr=hyp['lr0'], momentum=hyp['momentum'], weight_decay=hyp['weight_decay'])
+    pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
+    for k, v in dict(model.named_parameters()).items():
+        if '.bias' in k:
+            pg2 += [v]  # biases
+        elif re.search(r'conv.*weight',k) != None:
+            pg1 += [v]  # apply weight_decay
+        elif re.search('neck.*weight',k) != None:
+            pg1 += [v]
+        else:
+            pg0 += [v]  # all else
+    # Optimizer
+    if adam:
+        optimizer = optim.Adam(pg0, lr=hyp['lr0'])
+    else:
+        optimizer = optim.SGD(pg0, lr=hyp['lr0'], momentum=hyp['momentum'], nesterov=True)
     # optimizer = optim.Adam(model.parameters(),lr = hyp['lr0'])
-
+    optimizer.add_param_group({'params': pg1, 'weight_decay': hyp['weight_decay']})  # add pg1 with weight_decay
+    optimizer.add_param_group({'params': pg2})  # add pg2 (biases)
+    print('Optimizer groups: %g .bias, %g Conv2d.weight, %g other' % (len(pg2), len(pg1), len(pg0)))
+    del pg0, pg1, pg2
 
     cutoff = -1  # backbone reaches to cutoff layer
     start_epoch = 0
@@ -73,11 +93,14 @@ def train(
 
     # Scheduler https://github.com/ultralytics/yolov3/issues/238
 
-    lf = lambda x: 1 - 10 ** (hyp['lrf'] * (1 - x / epochs))  # inverse exp ramp
-    # lf = lambda epoch: 0.65 ** epoch
+    # lf = lambda x: 1 - 10 ** (hyp['lrf'] * (1 - x / epochs))  # inverse exp ramp
+    # # lf = lambda epoch: 0.65 ** epoch
 
-    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf, last_epoch=start_epoch - 1)
+    # scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf, last_epoch=start_epoch - 1)
 
+    lf = lambda x: (((1 + math.cos(x * math.pi / epochs)) / 2) ** 1.0) * 0.95 + 0.05  # cosine
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+    scheduler.last_epoch = start_epoch - 1
     # Dataset for train
     train_dataset = LoadImagesAndLabels(train_imgs_path, train_labels_path, img_size=img_size, augment=True, debug=debug)
 
@@ -102,6 +125,7 @@ def train(
     # Start training
     t = time.time()
     model.hyp = hyp  # attach hyperparameters to model
+    model.nc = nc
     # model_info(model)
 
     nb = len(train_dataloader)

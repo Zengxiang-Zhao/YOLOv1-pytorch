@@ -16,7 +16,11 @@ def build_model(anchors,nc,img_size):
                      ('layer3', resnet50.layer3),
                      ('layer4',resnet50.layer4),
         ]))
-    model_neck = nn.Sequential(nn.Conv2d(2048,3*(5+1),kernel_size=3,stride=1,padding=1))
+    model_neck = nn.Sequential(
+        OrderedDict([
+            ('conv_neck',nn.Conv2d(2048,3*(5+nc),kernel_size=3,stride=1,padding=1))
+            ])
+    )
     model_detector = Detector(anchors,nc,img_size=img_size)
     model = nn.Sequential(OrderedDict([
          ('backbone', model_backbone),

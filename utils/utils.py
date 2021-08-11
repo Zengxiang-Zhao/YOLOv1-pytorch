@@ -234,6 +234,9 @@ def wh_iou(box1, box2):
 
     return inter_area / union_area  # iou
 
+def smooth_BCE(eps=0.1):  # https://github.com/ultralytics/yolov3/issues/238#issuecomment-598028441
+    # return positive, negative label smoothing BCE targets
+    return 1.0 - 0.5 * eps, 0.5 * eps
 
 def compute_loss(p, targets, model):  # predictions, targets, model
     ft = torch.cuda.FloatTensor if p[0].is_cuda else torch.Tensor
@@ -244,6 +247,8 @@ def compute_loss(p, targets, model):  # predictions, targets, model
     MSE = nn.MSELoss()
     CE = nn.CrossEntropyLoss()
     BCE = nn.BCEWithLogitsLoss()
+    
+    cp, cn = smooth_BCE(eps=0.0) # class positive , class negative
 
     # Compute losses
     h = model.hyp  # hyperparameters
@@ -263,7 +268,16 @@ def compute_loss(p, targets, model):  # predictions, targets, model
 
         lxy += (k * h['xy']) * MSE(torch.sigmoid(pi[..., 0:2]), txy[i])  # xy loss
         lwh += (k * h['wh']) * MSE(pi[..., 2:4], twh[i])  # wh yolo loss
-        lcls += (k * h['cls']) * CE(pi[..., 5:], tcls[i])  # class_conf loss
+        
+        if model.nc > 1:  # cls loss (only if multiple classes)
+            t = torch.full_like(pi[:, 5:], cn)  # targets
+            print(t.shape)
+            print(len(b))
+            t[range(len(b)), tcls[i]] = cp
+#             lcls += BCEcls(pi[:, 5:], t)  # BCE
+            # lcls += CE(ps[:, 5:], tcls[i])  # CE
+        
+            lcls += (k * h['cls']) * BCE(pi[:, 5:], t)  # class_conf loss
 
     # pos_weight = ft([gp[i] / min(gp) * 4.])
     # BCE = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
