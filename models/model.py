@@ -3,8 +3,8 @@ import torch.nn as nn
 from collections import OrderedDict
 import torch
 
-def build_model(anchors,nc,img_size):
-    resnet50 = models.resnet50(pretrained=True)
+def build_model(anchors,nc,img_size,pretrained=False):
+    resnet50 = models.resnet50(pretrained=pretrained)
     model_backbone = nn.Sequential(
         OrderedDict([
                      ('conv1', resnet50.conv1),
