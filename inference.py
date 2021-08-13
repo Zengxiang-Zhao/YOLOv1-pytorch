@@ -49,7 +49,7 @@ def detect(
 
         # Get detections
         img = torch.from_numpy(img).unsqueeze(0).to(device) # [1,3,H,W]
-        pred = model(img)
+        pred,_ = model(img)
         det = non_max_suppression(pred, conf_thres, nms_thres)[0]
 
         if det is not None and len(det) > 0:
