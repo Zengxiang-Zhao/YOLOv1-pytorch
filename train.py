@@ -44,6 +44,7 @@ def train(
         save = False,
         weights = None,
         adam = None,
+        eps = 0.0,
 ):
     weights = weights + os.sep
     latest = weights + 'latest.pt'
@@ -149,7 +150,7 @@ def train(
 
             optimizer.zero_grad()
             # Compute loss
-            loss, loss_items = compute_loss(pred, targets, model)
+            loss, loss_items = compute_loss(pred, targets, model,eps)
             if torch.isnan(loss):
                 print('WARNING: nan loss detected, ending training')
                 return results
@@ -222,6 +223,7 @@ if __name__ == '__main__':
     parser.add_argument('--transfer', type = int,default=0, help='Whether only train the yolo layers: 0 False, 1 True')
     parser.add_argument('--debug', type=int,default=0, help='if Ture only use two images: 0 False, 1 True')
     parser.add_argument('--resume', type=int,default=0, help='if Ture to resume: 0 False, 1 True')
+    parser.add_argument('--eps', type=str,default=0.0, help='for smoothing lables in compute loss')
     opt = parser.parse_args()
     print(opt, end='\n\n')
 
@@ -239,6 +241,7 @@ if __name__ == '__main__':
         names = opt.names,
         resume = True if opt.resume else False,
         weights = opt.weights,
+        eps = float(opt.eps)
     )
 
 
