@@ -18,7 +18,7 @@ def build_model(anchors,nc,img_size,pretrained=False):
         ]))
     model_neck = nn.Sequential(
         OrderedDict([
-            ('conv_neck',nn.Conv2d(2048,3*(5+nc),kernel_size=3,stride=1,padding=1))
+            ('conv_neck',nn.Conv2d(2048,len(anchors)*(5+nc),kernel_size=3,stride=1,padding=1))
             ])
     )
     model_detector = Detector(anchors,nc,img_size=img_size)
