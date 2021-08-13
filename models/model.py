@@ -3,32 +3,43 @@ import torch.nn as nn
 from collections import OrderedDict
 import torch
 
-def build_model(anchors,nc,img_size,pretrained=False):
-    resnet50 = models.resnet50(pretrained=pretrained)
-    model_backbone = nn.Sequential(
-        OrderedDict([
-                     ('conv1', resnet50.conv1),
-                     ('bn1', resnet50.bn1),
-                     ('relu', resnet50.relu),
-                     ('maxpool',resnet50.maxpool),
-                     ('layer1', resnet50.layer1),
-                     ('layer2', resnet50.layer2),
-                     ('layer3', resnet50.layer3),
-                     ('layer4',resnet50.layer4),
-        ]))
-    model_neck = nn.Sequential(
-        OrderedDict([
-            ('conv_neck',nn.Conv2d(2048,len(anchors)*(5+nc),kernel_size=3,stride=1,padding=1))
-            ])
-    )
-    model_detector = Detector(anchors,nc,img_size=img_size)
-    model = nn.Sequential(OrderedDict([
-         ('backbone', model_backbone),
-         ('neck', model_neck),
-         ('detector', model_detector)                          
-        ]))
-    return model
+def build_module(anchors,nc,img_size,pretrained):
+        resnet50 = models.resnet50(pretrained=pretrained)
+        model_backbone = nn.Sequential(
+            OrderedDict([
+                         ('conv1', resnet50.conv1),
+                         ('bn1', resnet50.bn1),
+                         ('relu', resnet50.relu),
+                         ('maxpool',resnet50.maxpool),
+                         ('layer1', resnet50.layer1),
+                         ('layer2', resnet50.layer2),
+                         ('layer3', resnet50.layer3),
+                         ('layer4',resnet50.layer4),
+            ]))
+        model_neck = nn.Sequential(
+            OrderedDict([
+                ('conv_neck',nn.Conv2d(2048,len(anchors)*(5+nc),kernel_size=3,stride=1,padding=1))
+                ])
+        )
+        model_detector = Detector(anchors,nc,img_size=img_size)
 
+        # model = nn.Sequential(OrderedDict([
+        #      ('backbone', model_backbone),
+        #      ('neck', model_neck),
+        #      ('detector', model_detector)                          
+        #     ]))
+        return model_backbone,model_neck,model_detector
+
+class Resnetmodel(nn.Module):
+    def __init__(self,anchors,nc,img_size,pretrained=False):
+        super(Resnetmodel,self).__init__()
+        self.backbone,self.neck,self.detector = build_module(anchors,nc,img_size,pretrained=pretrained)
+
+    def forward(self,x):
+        x = self.backbone(x)
+        x = self.neck(x)
+        x = self.detector(x)
+        return x
 
 
 class Detector(nn.Module):

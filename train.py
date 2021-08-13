@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 import test_map  # Import test.py to get mAP after each epoch
-from models.model import build_model
+from models.model import Resnetmodel
 from utils.datasets import *
 from utils.utils import *
 
@@ -59,7 +59,7 @@ def train(
 
     # Initialize model
     if model == None:
-        model = build_model(anchors,nc,img_size).to(device)
+        model = Resnetmodel(anchors,nc,img_size).to(device)
     else:
         model = model.to(device)
 
