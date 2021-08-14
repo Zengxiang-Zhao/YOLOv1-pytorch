@@ -187,8 +187,7 @@ def train(
             # Create checkpoint
             chkpt = {'epoch': epoch,
                      'best_loss': best_loss,
-                     'model': model.module.state_dict() if type(
-                         model) is nn.parallel.DistributedDataParallel else model.state_dict(),
+                     'model': model.state_dict(),
                      'optimizer': optimizer.state_dict()}
 
             # Save latest checkpoint
