@@ -145,10 +145,11 @@ def train(
             targets = targets.to(device)
             nt = len(targets)
 
+            optimizer.zero_grad()
             # Run model
             pred = model(imgs)
 
-            optimizer.zero_grad()
+            # optimizer.zero_grad()
             # Compute loss
             loss, loss_items = compute_loss(pred, targets, model,eps)
             if torch.isnan(loss):
@@ -158,6 +159,7 @@ def train(
             loss.backward()
             optimizer.step()
             scheduler.step()
+            # optimizer.zero_grad()
 
             # Update running mean of tracked metrics
             mloss = (mloss * i + loss_items) / (i + 1)
